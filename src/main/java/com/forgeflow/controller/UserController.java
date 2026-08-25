@@ -18,66 +18,32 @@ public class UserController {
 
     private final UserService userService;
 
+    // Create user
     @PostMapping
     public ResponseEntity<UserResponse> createUser(
             @Valid @RequestBody CreateUserRequest request) {
 
-        UserResponse response = userService.createUser(request);
-
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(response);
+                .body(userService.createUser(request));
     }
 
+    // Get all users
+    @GetMapping
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+
+        return ResponseEntity.ok(
+                userService.getAllUsers()
+        );
+    }
+
+    // Get user by ID
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(
             @PathVariable Long id) {
 
-        UserResponse response = userService.getUserById(id);
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-
-        List<UserResponse> users = userService.getAllUsers();
-
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(
+                userService.getUserById(id)
+        );
     }
 }
-
-/*
-Our complete flow is now:
-
-        POST /api/users
-               ↓
-        UserController
-               ↓
-        CreateUserRequest
-               ↓
-        UserService
-               ↓
-        User entity
-               ↓
-        UserRepository
-               ↓
-        Hibernate
-               ↓
-        PostgreSQL
-
-And the response comes back:
-
-        PostgreSQL
-            ↓
-        UserRepository
-            ↓
-        UserService
-            ↓
-        UserResponse
-            ↓
-        UserController
-            ↓
-        JSON
-
-*/

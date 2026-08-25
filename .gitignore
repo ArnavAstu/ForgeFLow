@@ -43,3 +43,5 @@ target/
 application-local.properties
 
 .mvn/
+
+COMMANDS.md
