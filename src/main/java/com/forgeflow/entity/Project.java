@@ -8,28 +8,29 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "projects")
 @Getter
 @Setter
 @NoArgsConstructor
-public class User {
+public class Project {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @Column(nullable = false)
-    private String password;
+    @Column(length = 2000)
+    private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    private ProjectStatus status;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -45,8 +46,8 @@ public class User {
         createdAt = now;
         updatedAt = now;
 
-        if (role == null) {
-            role = Role.USER;
+        if (status == null) {
+            status = ProjectStatus.PLANNING;
         }
     }
 

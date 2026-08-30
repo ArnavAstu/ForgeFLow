@@ -17,4 +17,6 @@ public class ErrorResponse {
 
     // Time when the error occurred
     private LocalDateTime timestamp;
+
+
 }

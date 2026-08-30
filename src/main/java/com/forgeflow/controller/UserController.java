@@ -14,6 +14,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+
+//The controller basically says:
+// "I received this request. Service, you handle the actual work."
+
 public class UserController {
 
     private final UserService userService;
@@ -22,7 +26,8 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> createUser(
             @Valid @RequestBody CreateUserRequest request) {
-
+//        @RequestBody → Converts JSON request body into a Java object.
+//        @Valid → Validates that Java object using annotations like @NotBlank, @Email, and @Size.
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(userService.createUser(request));
@@ -45,5 +50,8 @@ public class UserController {
         return ResponseEntity.ok(
                 userService.getUserById(id)
         );
+    }
+
+    public static class AuthResponse {
     }
 }

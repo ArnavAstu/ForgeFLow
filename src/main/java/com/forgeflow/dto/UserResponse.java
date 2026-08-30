@@ -1,5 +1,6 @@
 package com.forgeflow.dto;
 
+import com.forgeflow.entity.Role;
 import com.forgeflow.entity.User;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,7 @@ public class UserResponse {
     private String email;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Role role;
 
     public UserResponse(User user) {
         this.id = user.getId();
@@ -24,5 +26,6 @@ public class UserResponse {
         this.email = user.getEmail();
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
+        this.role = user.getRole();
     }
 }
