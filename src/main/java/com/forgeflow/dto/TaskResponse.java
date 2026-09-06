@@ -22,6 +22,8 @@ public class TaskResponse {
 
     private TaskPriority priority;
 
+    private LocalDateTime dueDate;
+
     private Long projectId;
 
     private String projectName;
@@ -34,33 +36,58 @@ public class TaskResponse {
 
     private LocalDateTime updatedAt;
 
-    public TaskResponse(Task task) {
 
-        this.id = task.getId();
+    public TaskResponse(
+            Task task
+    ) {
 
-        this.title = task.getTitle();
+        this.id =
+                task.getId();
 
-        this.description = task.getDescription();
+        this.title =
+                task.getTitle();
 
-        this.status = task.getStatus();
+        this.description =
+                task.getDescription();
 
-        this.priority = task.getPriority();
+        this.status =
+                task.getStatus();
 
-        this.projectId = task.getProject().getId();
+        this.priority =
+                task.getPriority();
 
-        this.projectName = task.getProject().getName();
+        this.dueDate =
+                task.getDueDate();
+
+        this.projectId =
+                task
+                        .getProject()
+                        .getId();
+
+        this.projectName =
+                task
+                        .getProject()
+                        .getName();
+
 
         if (task.getAssignedUser() != null) {
 
             this.assignedUserId =
-                    task.getAssignedUser().getId();
+                    task
+                            .getAssignedUser()
+                            .getId();
 
             this.assignedUserName =
-                    task.getAssignedUser().getName();
+                    task
+                            .getAssignedUser()
+                            .getName();
         }
 
-        this.createdAt = task.getCreatedAt();
 
-        this.updatedAt = task.getUpdatedAt();
+        this.createdAt =
+                task.getCreatedAt();
+
+        this.updatedAt =
+                task.getUpdatedAt();
     }
 }

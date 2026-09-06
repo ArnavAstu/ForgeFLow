@@ -47,35 +47,7 @@ public class ProjectController {
 
 
     // =========================================================
-    // GET PROJECT
-    // =========================================================
-
-    @GetMapping("/{id}")
-    public ResponseEntity<ProjectResponse> getProject(
-            @PathVariable Long id
-    ) {
-
-        return ResponseEntity.ok(
-                projectService.getProject(id)
-        );
-    }
-
-
-    // =========================================================
-    // GET ALL PROJECTS
-    // =========================================================
-
-    @GetMapping
-    public ResponseEntity<List<ProjectResponse>> getAllProjects() {
-
-        return ResponseEntity.ok(
-                projectService.getAllProjects()
-        );
-    }
-
-
-    // =========================================================
-    // GET MY PROJECTS
+    // GET PROJECTS OWNED BY CURRENT USER
     // =========================================================
 
     @GetMapping("/my")
@@ -87,7 +59,51 @@ public class ProjectController {
                 authentication.getName();
 
         return ResponseEntity.ok(
-                projectService.getMyProjects(email)
+                projectService.getMyProjects(
+                        email
+                )
+        );
+    }
+
+
+    // =========================================================
+    // GET ALL PROJECTS CURRENT USER CAN ACCESS
+    // =========================================================
+
+    @GetMapping
+    public ResponseEntity<List<ProjectResponse>> getAccessibleProjects(
+            Authentication authentication
+    ) {
+
+        String email =
+                authentication.getName();
+
+        return ResponseEntity.ok(
+                projectService.getAccessibleProjects(
+                        email
+                )
+        );
+    }
+
+
+    // =========================================================
+    // GET ONE PROJECT
+    // =========================================================
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProjectResponse> getProject(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+
+        String email =
+                authentication.getName();
+
+        return ResponseEntity.ok(
+                projectService.getProject(
+                        id,
+                        email
+                )
         );
     }
 
@@ -113,7 +129,9 @@ public class ProjectController {
                         email
                 );
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                response
+        );
     }
 
 

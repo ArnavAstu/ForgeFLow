@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
@@ -17,7 +19,31 @@ public class TaskManagementController {
     private final TaskService taskService;
 
 
+    // =========================================================
+    // MY ASSIGNED TASKS
+    // =========================================================
+
+    @GetMapping("/my")
+    public ResponseEntity<List<TaskResponse>> getMyTasks(
+            Authentication authentication
+    ) {
+
+        String email =
+                authentication.getName();
+
+
+        return ResponseEntity.ok(
+                taskService.getMyTasks(
+                        email
+                )
+        );
+    }
+
+
+    // =========================================================
     // GET TASK
+    // =========================================================
+
     @GetMapping("/{taskId}")
     public ResponseEntity<TaskResponse> getTask(
             @PathVariable Long taskId,
@@ -26,6 +52,7 @@ public class TaskManagementController {
 
         String email =
                 authentication.getName();
+
 
         return ResponseEntity.ok(
                 taskService.getTask(
@@ -36,7 +63,10 @@ public class TaskManagementController {
     }
 
 
+    // =========================================================
     // UPDATE TASK
+    // =========================================================
+
     @PatchMapping("/{taskId}")
     public ResponseEntity<TaskResponse> updateTask(
             @PathVariable Long taskId,
@@ -46,6 +76,7 @@ public class TaskManagementController {
 
         String email =
                 authentication.getName();
+
 
         return ResponseEntity.ok(
                 taskService.updateTask(
@@ -57,7 +88,10 @@ public class TaskManagementController {
     }
 
 
+    // =========================================================
     // DELETE TASK
+    // =========================================================
+
     @DeleteMapping("/{taskId}")
     public ResponseEntity<Void> deleteTask(
             @PathVariable Long taskId,
@@ -67,10 +101,12 @@ public class TaskManagementController {
         String email =
                 authentication.getName();
 
+
         taskService.deleteTask(
                 taskId,
                 email
         );
+
 
         return ResponseEntity
                 .noContent()
@@ -78,7 +114,10 @@ public class TaskManagementController {
     }
 
 
+    // =========================================================
     // ASSIGN TASK
+    // =========================================================
+
     @PutMapping("/{taskId}/assign/{userId}")
     public ResponseEntity<TaskResponse> assignTask(
             @PathVariable Long taskId,
@@ -88,6 +127,7 @@ public class TaskManagementController {
 
         String ownerEmail =
                 authentication.getName();
+
 
         return ResponseEntity.ok(
                 taskService.assignTask(
@@ -99,7 +139,10 @@ public class TaskManagementController {
     }
 
 
+    // =========================================================
     // UNASSIGN TASK
+    // =========================================================
+
     @DeleteMapping("/{taskId}/assignment")
     public ResponseEntity<TaskResponse> unassignTask(
             @PathVariable Long taskId,
@@ -108,6 +151,7 @@ public class TaskManagementController {
 
         String ownerEmail =
                 authentication.getName();
+
 
         return ResponseEntity.ok(
                 taskService.unassignTask(

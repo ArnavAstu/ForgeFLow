@@ -2,7 +2,8 @@ package com.forgeflow.controller;
 
 import com.forgeflow.dto.CreateTaskRequest;
 import com.forgeflow.dto.TaskResponse;
-import com.forgeflow.dto.UpdateTaskRequest;
+import com.forgeflow.entity.TaskPriority;
+import com.forgeflow.entity.TaskStatus;
 import com.forgeflow.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,12 +36,14 @@ public class TaskController {
         String email =
                 authentication.getName();
 
+
         TaskResponse response =
                 taskService.createTask(
                         projectId,
                         request,
                         email
                 );
+
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -50,21 +53,59 @@ public class TaskController {
 
     // =========================================================
     // GET PROJECT TASKS
+    //
+    // Examples:
+    //
+    // /tasks
+    //
+    // /tasks?status=TODO
+    //
+    // /tasks?priority=HIGH
+    //
+    // /tasks?status=TODO&priority=HIGH
+    //
+    // /tasks?sortBy=dueDate&direction=asc
     // =========================================================
 
     @GetMapping
     public ResponseEntity<List<TaskResponse>> getProjectTasks(
             @PathVariable Long projectId,
+
+            @RequestParam(
+                    required = false
+            )
+            TaskStatus status,
+
+            @RequestParam(
+                    required = false
+            )
+            TaskPriority priority,
+
+            @RequestParam(
+                    defaultValue = "dueDate"
+            )
+            String sortBy,
+
+            @RequestParam(
+                    defaultValue = "asc"
+            )
+            String direction,
+
             Authentication authentication
     ) {
 
         String email =
                 authentication.getName();
 
+
         return ResponseEntity.ok(
                 taskService.getProjectTasks(
                         projectId,
-                        email
+                        email,
+                        status,
+                        priority,
+                        sortBy,
+                        direction
                 )
         );
     }

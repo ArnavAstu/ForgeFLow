@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 public class UpdateTaskRequest {
@@ -16,13 +18,19 @@ public class UpdateTaskRequest {
     )
     private String title;
 
+
     @Size(
             max = 3000,
             message = "Task description cannot exceed 3000 characters"
     )
     private String description;
 
+
     private TaskStatus status;
 
+
     private TaskPriority priority;
+
+
+    private LocalDateTime dueDate;
 }

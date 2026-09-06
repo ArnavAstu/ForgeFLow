@@ -4,14 +4,19 @@ import com.forgeflow.dto.CreateProjectRequest;
 import com.forgeflow.dto.ProjectResponse;
 import com.forgeflow.dto.UpdateProjectRequest;
 import com.forgeflow.entity.Project;
+import com.forgeflow.entity.ProjectMember;
 import com.forgeflow.entity.User;
 import com.forgeflow.exception.ResourceNotFoundException;
+import com.forgeflow.repository.ProjectMemberRepository;
 import com.forgeflow.repository.ProjectRepository;
 import com.forgeflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +25,8 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
 
     private final UserRepository userRepository;
+
+    private final ProjectMemberRepository projectMemberRepository;
 
 
     // =========================================================
@@ -31,50 +38,118 @@ public class ProjectService {
             String userEmail
     ) {
 
-        User owner = getUserByEmail(userEmail);
+        User owner =
+                getUserByEmail(userEmail);
 
-        Project project = new Project();
+        Project project =
+                new Project();
 
-        project.setName(request.getName());
+        project.setName(
+                request.getName()
+        );
 
-        project.setDescription(request.getDescription());
+        project.setDescription(
+                request.getDescription()
+        );
 
         project.setOwner(owner);
 
         Project savedProject =
                 projectRepository.save(project);
 
-        return new ProjectResponse(savedProject);
+        return new ProjectResponse(
+                savedProject
+        );
     }
 
 
     // =========================================================
-    // GET PROJECT
+    // GET ONE PROJECT
+    // owner OR project member can access
     // =========================================================
 
-    public ProjectResponse getProject(Long id) {
+    public ProjectResponse getProject(
+            Long id,
+            String userEmail
+    ) {
 
         Project project =
-                projectRepository
-                        .findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Project not found with id: " + id
-                                )
-                        );
+                getProjectEntity(id);
+
+        User currentUser =
+                getUserByEmail(userEmail);
+
+        checkProjectAccess(
+                project,
+                currentUser
+        );
 
         return new ProjectResponse(project);
     }
 
 
     // =========================================================
-    // GET ALL PROJECTS
+    // GET ALL ACCESSIBLE PROJECTS
+    //
+    // returns:
+    // 1. projects owned by user
+    // 2. projects where user is a member
     // =========================================================
 
-    public List<ProjectResponse> getAllProjects() {
+    public List<ProjectResponse> getAccessibleProjects(
+            String userEmail
+    ) {
 
-        return projectRepository
-                .findAll()
+        User user =
+                getUserByEmail(userEmail);
+
+        List<Project> ownedProjects =
+                projectRepository
+                        .findByOwnerId(
+                                user.getId()
+                        );
+
+        List<ProjectMember> memberships =
+                projectMemberRepository
+                        .findByUserId(
+                                user.getId()
+                        );
+
+        /*
+         * LinkedHashMap prevents duplicates.
+         *
+         * Key   = project ID
+         * Value = Project
+         */
+        Map<Long, Project> accessibleProjects =
+                new LinkedHashMap<>();
+
+
+        // Add projects owned by user
+        for (Project project : ownedProjects) {
+
+            accessibleProjects.put(
+                    project.getId(),
+                    project
+            );
+        }
+
+
+        // Add projects where user is a member
+        for (ProjectMember membership : memberships) {
+
+            Project project =
+                    membership.getProject();
+
+            accessibleProjects.put(
+                    project.getId(),
+                    project
+            );
+        }
+
+
+        return accessibleProjects
+                .values()
                 .stream()
                 .map(ProjectResponse::new)
                 .toList();
@@ -82,17 +157,20 @@ public class ProjectService {
 
 
     // =========================================================
-    // GET MY PROJECTS
+    // GET PROJECTS OWNED BY CURRENT USER
     // =========================================================
 
     public List<ProjectResponse> getMyProjects(
             String userEmail
     ) {
 
-        User user = getUserByEmail(userEmail);
+        User user =
+                getUserByEmail(userEmail);
 
         return projectRepository
-                .findByOwnerId(user.getId())
+                .findByOwnerId(
+                        user.getId()
+                )
                 .stream()
                 .map(ProjectResponse::new)
                 .toList();
@@ -101,6 +179,7 @@ public class ProjectService {
 
     // =========================================================
     // UPDATE PROJECT
+    // owner only
     // =========================================================
 
     public ProjectResponse updateProject(
@@ -110,17 +189,16 @@ public class ProjectService {
     ) {
 
         Project project =
-                projectRepository
-                        .findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Project not found with id: " + id
-                                )
-                        );
+                getProjectEntity(id);
 
-        User currentUser = getUserByEmail(userEmail);
+        User currentUser =
+                getUserByEmail(userEmail);
 
-        checkOwnership(project, currentUser);
+        checkOwnership(
+                project,
+                currentUser
+        );
+
 
         if (request.getName() != null) {
 
@@ -129,12 +207,14 @@ public class ProjectService {
             );
         }
 
+
         if (request.getDescription() != null) {
 
             project.setDescription(
                     request.getDescription()
             );
         }
+
 
         if (request.getStatus() != null) {
 
@@ -143,15 +223,19 @@ public class ProjectService {
             );
         }
 
+
         Project updatedProject =
                 projectRepository.save(project);
 
-        return new ProjectResponse(updatedProject);
+        return new ProjectResponse(
+                updatedProject
+        );
     }
 
 
     // =========================================================
     // DELETE PROJECT
+    // owner only
     // =========================================================
 
     public void deleteProject(
@@ -160,24 +244,41 @@ public class ProjectService {
     ) {
 
         Project project =
-                projectRepository
-                        .findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Project not found with id: " + id
-                                )
-                        );
+                getProjectEntity(id);
 
-        User currentUser = getUserByEmail(userEmail);
+        User currentUser =
+                getUserByEmail(userEmail);
 
-        checkOwnership(project, currentUser);
+        checkOwnership(
+                project,
+                currentUser
+        );
 
         projectRepository.delete(project);
     }
 
 
     // =========================================================
-    // GET USER BY EMAIL
+    // GET PROJECT ENTITY
+    // =========================================================
+
+    private Project getProjectEntity(
+            Long id
+    ) {
+
+        return projectRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Project not found with id: "
+                                        + id
+                        )
+                );
+    }
+
+
+    // =========================================================
+    // GET USER
     // =========================================================
 
     private User getUserByEmail(
@@ -195,7 +296,43 @@ public class ProjectService {
 
 
     // =========================================================
-    // OWNERSHIP CHECK
+    // PROJECT ACCESS
+    //
+    // owner OR member
+    // =========================================================
+
+    private void checkProjectAccess(
+            Project project,
+            User currentUser
+    ) {
+
+        boolean isOwner =
+                project
+                        .getOwner()
+                        .getId()
+                        .equals(
+                                currentUser.getId()
+                        );
+
+        boolean isMember =
+                projectMemberRepository
+                        .existsByProjectIdAndUserId(
+                                project.getId(),
+                                currentUser.getId()
+                        );
+
+
+        if (!isOwner && !isMember) {
+
+            throw new AccessDeniedException(
+                    "You do not have access to this project"
+            );
+        }
+    }
+
+
+    // =========================================================
+    // OWNER ONLY
     // =========================================================
 
     private void checkOwnership(
@@ -203,12 +340,15 @@ public class ProjectService {
             User currentUser
     ) {
 
-        if (!project.getOwner()
+        if (!project
+                .getOwner()
                 .getId()
-                .equals(currentUser.getId())) {
+                .equals(
+                        currentUser.getId()
+                )) {
 
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "You are not allowed to modify this project"
+            throw new AccessDeniedException(
+                    "Only the project owner can perform this action"
             );
         }
     }
