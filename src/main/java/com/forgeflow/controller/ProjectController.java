@@ -6,6 +6,7 @@ import com.forgeflow.dto.UpdateProjectRequest;
 import com.forgeflow.service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -71,16 +72,21 @@ public class ProjectController {
     // =========================================================
 
     @GetMapping
-    public ResponseEntity<List<ProjectResponse>> getAccessibleProjects(
-            Authentication authentication
+    public ResponseEntity<Page<ProjectResponse>> getProjects(
+            Authentication authentication,
+
+            @RequestParam(defaultValue = "0")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            int size
     ) {
 
-        String email =
-                authentication.getName();
-
         return ResponseEntity.ok(
-                projectService.getAccessibleProjects(
-                        email
+                projectService.getProjects(
+                        authentication.getName(),
+                        page,
+                        size
                 )
         );
     }

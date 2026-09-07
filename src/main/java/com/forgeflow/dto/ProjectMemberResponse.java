@@ -1,10 +1,9 @@
 package com.forgeflow.dto;
 
 import com.forgeflow.entity.ProjectMember;
+import com.forgeflow.entity.ProjectMemberRole;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor
@@ -16,13 +15,11 @@ public class ProjectMemberResponse {
 
     private String userName;
 
-    private String userEmail;
+    private String email;
 
-    private LocalDateTime joinedAt;
+    private ProjectMemberRole role;
 
-    public ProjectMemberResponse(
-            ProjectMember member
-    ) {
+    public ProjectMemberResponse(ProjectMember member) {
 
         this.id = member.getId();
 
@@ -32,10 +29,10 @@ public class ProjectMemberResponse {
         this.userName =
                 member.getUser().getName();
 
-        this.userEmail =
+        this.email =
                 member.getUser().getEmail();
 
-        this.joinedAt =
-                member.getJoinedAt();
+        this.role =
+                member.getRole();
     }
 }

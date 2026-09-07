@@ -9,11 +9,8 @@ import java.util.Optional;
 public interface ProjectMemberRepository
         extends JpaRepository<ProjectMember, Long> {
 
-    List<ProjectMember> findByProjectId(
-            Long projectId
-    );
-
-    List<ProjectMember> findByUserId(
+    boolean existsByProjectIdAndUserId(
+            Long projectId,
             Long userId
     );
 
@@ -22,13 +19,11 @@ public interface ProjectMemberRepository
             Long userId
     );
 
-    boolean existsByProjectIdAndUserId(
-            Long projectId,
-            Long userId
+    List<ProjectMember> findByProjectId(
+            Long projectId
     );
 
-    void deleteByProjectIdAndUserId(
-            Long projectId,
+    List<ProjectMember> findByUserId(
             Long userId
     );
 }

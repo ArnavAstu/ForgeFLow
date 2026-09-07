@@ -3,6 +3,7 @@ package com.forgeflow.dto;
 import com.forgeflow.entity.TaskPriority;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,6 +31,9 @@ public class CreateTaskRequest {
     private String description;
 
 
+    @NotNull(
+            message = "Task priority is required"
+    )
     private TaskPriority priority;
 
 

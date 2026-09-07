@@ -14,11 +14,14 @@ import com.forgeflow.repository.ProjectRepository;
 import com.forgeflow.repository.TaskRepository;
 import com.forgeflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -55,7 +58,6 @@ public class TaskService {
                 currentUser
         );
 
-
         Task task =
                 new Task();
 
@@ -77,10 +79,8 @@ public class TaskService {
 
         task.setProject(project);
 
-
         Task savedTask =
                 taskRepository.save(task);
-
 
         return new TaskResponse(
                 savedTask
@@ -108,7 +108,6 @@ public class TaskService {
                 currentUser
         );
 
-
         return new TaskResponse(task);
     }
 
@@ -116,19 +115,22 @@ public class TaskService {
     // =========================================================
     // GET PROJECT TASKS
     //
-    // supports:
+    // Supports:
     // status
     // priority
     // sorting
+    // pagination
     // =========================================================
 
-    public List<TaskResponse> getProjectTasks(
+    public Page<TaskResponse> getProjectTasks(
             Long projectId,
             String userEmail,
             TaskStatus status,
             TaskPriority priority,
             String sortBy,
-            String direction
+            String direction,
+            int page,
+            int size
     ) {
 
         Project project =
@@ -143,6 +145,29 @@ public class TaskService {
         );
 
 
+        // =====================================================
+        // VALIDATE PAGINATION
+        // =====================================================
+
+        if (page < 0) {
+
+            throw new IllegalArgumentException(
+                    "Page number cannot be negative"
+            );
+        }
+
+        if (size < 1 || size > 100) {
+
+            throw new IllegalArgumentException(
+                    "Page size must be between 1 and 100"
+            );
+        }
+
+
+        // =====================================================
+        // BUILD SORT
+        // =====================================================
+
         Sort sort =
                 buildSort(
                         sortBy,
@@ -150,7 +175,23 @@ public class TaskService {
                 );
 
 
-        List<Task> tasks;
+        // =====================================================
+        // CREATE PAGE REQUEST
+        // =====================================================
+
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        sort
+                );
+
+
+        // =====================================================
+        // QUERY
+        // =====================================================
+
+        Page<Task> tasks;
 
 
         if (status != null &&
@@ -162,7 +203,7 @@ public class TaskService {
                                     projectId,
                                     status,
                                     priority,
-                                    sort
+                                    pageable
                             );
 
         } else if (status != null) {
@@ -172,7 +213,7 @@ public class TaskService {
                             .findByProjectIdAndStatus(
                                     projectId,
                                     status,
-                                    sort
+                                    pageable
                             );
 
         } else if (priority != null) {
@@ -182,7 +223,7 @@ public class TaskService {
                             .findByProjectIdAndPriority(
                                     projectId,
                                     priority,
-                                    sort
+                                    pageable
                             );
 
         } else {
@@ -191,29 +232,59 @@ public class TaskService {
                     taskRepository
                             .findByProjectId(
                                     projectId,
-                                    sort
+                                    pageable
                             );
         }
 
 
-        return tasks
-                .stream()
-                .map(TaskResponse::new)
-                .toList();
+        // =====================================================
+        // ENTITY → DTO
+        // =====================================================
+
+        return tasks.map(
+                TaskResponse::new
+        );
     }
 
 
     // =========================================================
-    // MY ASSIGNED TASKS
+    // GET MY ASSIGNED TASKS
+    //
+    // NOW PAGINATED
     // =========================================================
 
-    public List<TaskResponse> getMyTasks(
-            String userEmail
+    public Page<TaskResponse> getMyTasks(
+            String userEmail,
+            int page,
+            int size
     ) {
 
         User user =
                 getUserByEmail(userEmail);
 
+
+        // =====================================================
+        // VALIDATE PAGINATION
+        // =====================================================
+
+        if (page < 0) {
+
+            throw new IllegalArgumentException(
+                    "Page number cannot be negative"
+            );
+        }
+
+        if (size < 1 || size > 100) {
+
+            throw new IllegalArgumentException(
+                    "Page size must be between 1 and 100"
+            );
+        }
+
+
+        // =====================================================
+        // SORT BY DUE DATE
+        // =====================================================
 
         Sort sort =
                 Sort.by(
@@ -222,14 +293,28 @@ public class TaskService {
                 );
 
 
+        // =====================================================
+        // CREATE PAGE REQUEST
+        // =====================================================
+
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        sort
+                );
+
+
+        // =====================================================
+        // FETCH PAGINATED TASKS
+        // =====================================================
+
         return taskRepository
                 .findByAssignedUserId(
                         user.getId(),
-                        sort
+                        pageable
                 )
-                .stream()
-                .map(TaskResponse::new)
-                .toList();
+                .map(TaskResponse::new);
     }
 
 
@@ -255,14 +340,12 @@ public class TaskService {
                 currentUser
         );
 
-
         if (request.getTitle() != null) {
 
             task.setTitle(
                     request.getTitle()
             );
         }
-
 
         if (request.getDescription() != null) {
 
@@ -271,14 +354,12 @@ public class TaskService {
             );
         }
 
-
         if (request.getStatus() != null) {
 
             task.setStatus(
                     request.getStatus()
             );
         }
-
 
         if (request.getPriority() != null) {
 
@@ -287,7 +368,6 @@ public class TaskService {
             );
         }
 
-
         if (request.getDueDate() != null) {
 
             task.setDueDate(
@@ -295,10 +375,8 @@ public class TaskService {
             );
         }
 
-
         Task updatedTask =
                 taskRepository.save(task);
-
 
         return new TaskResponse(
                 updatedTask
@@ -327,7 +405,6 @@ public class TaskService {
                 currentUser
         );
 
-
         taskRepository.delete(task);
     }
 
@@ -355,6 +432,7 @@ public class TaskService {
         );
 
 
+        // Find the user
         User assignedUser =
                 userRepository
                         .findById(userId)
@@ -366,24 +444,25 @@ public class TaskService {
                         );
 
 
+        // Check whether user belongs
+        // to this project
         boolean isMember =
                 projectMemberRepository
                         .existsByProjectIdAndUserId(
-                                task
-                                        .getProject()
-                                        .getId(),
+                                task.getProject().getId(),
                                 userId
                         );
 
 
+        // Project owner can also receive tasks
         boolean isOwner =
-                task
-                        .getProject()
+                task.getProject()
                         .getOwner()
                         .getId()
                         .equals(userId);
 
 
+        // Reject outsiders
         if (!isMember && !isOwner) {
 
             throw new AccessDeniedException(
@@ -392,6 +471,7 @@ public class TaskService {
         }
 
 
+        // Assign validated user
         task.setAssignedUser(
                 assignedUser
         );
@@ -428,13 +508,10 @@ public class TaskService {
                 owner
         );
 
-
         task.setAssignedUser(null);
-
 
         Task savedTask =
                 taskRepository.save(task);
-
 
         return new TaskResponse(
                 savedTask

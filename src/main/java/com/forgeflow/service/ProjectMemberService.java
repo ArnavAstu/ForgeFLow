@@ -1,15 +1,18 @@
 package com.forgeflow.service;
 
+import com.forgeflow.dto.AddMemberRequest;
 import com.forgeflow.dto.ProjectMemberResponse;
+import com.forgeflow.dto.UpdateMemberRoleRequest;
 import com.forgeflow.entity.Project;
 import com.forgeflow.entity.ProjectMember;
+import com.forgeflow.entity.ProjectMemberRole;
 import com.forgeflow.entity.User;
-import com.forgeflow.exception.DuplicateResourceException;
 import com.forgeflow.exception.ResourceNotFoundException;
 import com.forgeflow.repository.ProjectMemberRepository;
 import com.forgeflow.repository.ProjectRepository;
 import com.forgeflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,17 +21,20 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectMemberService {
 
-    private final ProjectMemberRepository projectMemberRepository;
-
     private final ProjectRepository projectRepository;
 
     private final UserRepository userRepository;
 
+    private final ProjectMemberRepository projectMemberRepository;
 
+
+    // =========================================================
     // ADD MEMBER
+    // =========================================================
+
     public ProjectMemberResponse addMember(
             Long projectId,
-            Long userId,
+            AddMemberRequest request,
             String ownerEmail
     ) {
 
@@ -36,31 +42,42 @@ public class ProjectMemberService {
                 getProject(projectId);
 
         User owner =
-                getUserByEmail(ownerEmail);
+                getUser(ownerEmail);
 
-        checkProjectOwner(
-                project,
-                owner
-        );
+        checkOwner(project, owner);
+
 
         User user =
-                userRepository.findById(userId)
+                userRepository
+                        .findByEmail(request.getEmail())
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "User not found with id: " + userId
+                                        "User not found with email: "
+                                                + request.getEmail()
                                 )
                         );
+
+
+        if (project.getOwner().getId()
+                .equals(user.getId())) {
+
+            throw new IllegalArgumentException(
+                    "Project owner cannot be added as a member"
+            );
+        }
+
 
         if (projectMemberRepository
                 .existsByProjectIdAndUserId(
                         projectId,
-                        userId
+                        user.getId()
                 )) {
 
-            throw new DuplicateResourceException(
-                    "User is already a member of this project"
+            throw new IllegalArgumentException(
+                    "User is already a project member"
             );
         }
+
 
         ProjectMember member =
                 new ProjectMember();
@@ -69,26 +86,35 @@ public class ProjectMemberService {
 
         member.setUser(user);
 
-        ProjectMember savedMember =
+        member.setRole(
+                ProjectMemberRole.MEMBER
+        );
+
+
+        ProjectMember saved =
                 projectMemberRepository.save(member);
 
-        return new ProjectMemberResponse(
-                savedMember
-        );
+        return new ProjectMemberResponse(saved);
     }
 
 
+    // =========================================================
     // GET MEMBERS
+    // =========================================================
+
     public List<ProjectMemberResponse> getMembers(
-            Long projectId
+            Long projectId,
+            String userEmail
     ) {
 
-        if (!projectRepository.existsById(projectId)) {
+        Project project =
+                getProject(projectId);
 
-            throw new ResourceNotFoundException(
-                    "Project not found with id: " + projectId
-            );
-        }
+        User user =
+                getUser(userEmail);
+
+        checkProjectAccess(project, user);
+
 
         return projectMemberRepository
                 .findByProjectId(projectId)
@@ -98,7 +124,10 @@ public class ProjectMemberService {
     }
 
 
+    // =========================================================
     // REMOVE MEMBER
+    // =========================================================
+
     public void removeMember(
             Long projectId,
             Long userId,
@@ -109,50 +138,90 @@ public class ProjectMemberService {
                 getProject(projectId);
 
         User owner =
-                getUserByEmail(ownerEmail);
+                getUser(ownerEmail);
 
-        checkProjectOwner(
-                project,
-                owner
-        );
+        checkOwner(project, owner);
 
-        if (!projectMemberRepository
-                .existsByProjectIdAndUserId(
-                        projectId,
-                        userId
-                )) {
 
-            throw new ResourceNotFoundException(
-                    "User is not a member of this project"
-            );
-        }
+        ProjectMember member =
+                projectMemberRepository
+                        .findByProjectIdAndUserId(
+                                projectId,
+                                userId
+                        )
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Project member not found"
+                                )
+                        );
 
-        projectMemberRepository
-                .deleteByProjectIdAndUserId(
-                        projectId,
-                        userId
-                );
+
+        projectMemberRepository.delete(member);
     }
 
 
-    private Project getProject(
-            Long projectId
+    // =========================================================
+    // UPDATE MEMBER ROLE
+    // =========================================================
+
+    public ProjectMemberResponse updateRole(
+            Long projectId,
+            Long userId,
+            UpdateMemberRoleRequest request,
+            String ownerEmail
     ) {
+
+        Project project =
+                getProject(projectId);
+
+        User owner =
+                getUser(ownerEmail);
+
+        checkOwner(project, owner);
+
+
+        ProjectMember member =
+                projectMemberRepository
+                        .findByProjectIdAndUserId(
+                                projectId,
+                                userId
+                        )
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Project member not found"
+                                )
+                        );
+
+
+        member.setRole(
+                request.getRole()
+        );
+
+
+        ProjectMember saved =
+                projectMemberRepository.save(member);
+
+        return new ProjectMemberResponse(saved);
+    }
+
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    private Project getProject(Long projectId) {
 
         return projectRepository
                 .findById(projectId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Project not found with id: "
-                                        + projectId
+                                "Project not found"
                         )
                 );
     }
 
 
-    private User getUserByEmail(
-            String email
-    ) {
+    private User getUser(String email) {
 
         return userRepository
                 .findByEmail(email)
@@ -164,17 +233,43 @@ public class ProjectMemberService {
     }
 
 
-    private void checkProjectOwner(
+    private void checkOwner(
             Project project,
-            User currentUser
+            User user
     ) {
 
-        if (!project.getOwner()
-                .getId()
-                .equals(currentUser.getId())) {
+        if (!project.getOwner().getId()
+                .equals(user.getId())) {
 
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "Only the project owner can manage members"
+            throw new AccessDeniedException(
+                    "Only the project owner can perform this action"
+            );
+        }
+    }
+
+
+    private void checkProjectAccess(
+            Project project,
+            User user
+    ) {
+
+        boolean owner =
+                project.getOwner().getId()
+                        .equals(user.getId());
+
+
+        boolean member =
+                projectMemberRepository
+                        .existsByProjectIdAndUserId(
+                                project.getId(),
+                                user.getId()
+                        );
+
+
+        if (!owner && !member) {
+
+            throw new AccessDeniedException(
+                    "You do not have access to this project"
             );
         }
     }

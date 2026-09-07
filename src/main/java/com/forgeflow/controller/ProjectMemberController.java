@@ -1,7 +1,10 @@
 package com.forgeflow.controller;
 
+import com.forgeflow.dto.AddMemberRequest;
 import com.forgeflow.dto.ProjectMemberResponse;
+import com.forgeflow.dto.UpdateMemberRoleRequest;
 import com.forgeflow.service.ProjectMemberService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,22 +21,22 @@ public class ProjectMemberController {
     private final ProjectMemberService projectMemberService;
 
 
-    // ADD MEMBER
-    @PostMapping("/{userId}")
+    @PostMapping
     public ResponseEntity<ProjectMemberResponse> addMember(
             @PathVariable Long projectId,
-            @PathVariable Long userId,
+
+            @Valid
+            @RequestBody
+            AddMemberRequest request,
+
             Authentication authentication
     ) {
-
-        String ownerEmail =
-                authentication.getName();
 
         ProjectMemberResponse response =
                 projectMemberService.addMember(
                         projectId,
-                        userId,
-                        ownerEmail
+                        request,
+                        authentication.getName()
                 );
 
         return ResponseEntity
@@ -42,21 +45,21 @@ public class ProjectMemberController {
     }
 
 
-    // GET MEMBERS
     @GetMapping
     public ResponseEntity<List<ProjectMemberResponse>> getMembers(
-            @PathVariable Long projectId
+            @PathVariable Long projectId,
+            Authentication authentication
     ) {
 
         return ResponseEntity.ok(
                 projectMemberService.getMembers(
-                        projectId
+                        projectId,
+                        authentication.getName()
                 )
         );
     }
 
 
-    // REMOVE MEMBER
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> removeMember(
             @PathVariable Long projectId,
@@ -64,17 +67,35 @@ public class ProjectMemberController {
             Authentication authentication
     ) {
 
-        String ownerEmail =
-                authentication.getName();
-
         projectMemberService.removeMember(
                 projectId,
                 userId,
-                ownerEmail
+                authentication.getName()
         );
 
-        return ResponseEntity
-                .noContent()
-                .build();
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @PatchMapping("/{userId}/role")
+    public ResponseEntity<ProjectMemberResponse> updateRole(
+            @PathVariable Long projectId,
+            @PathVariable Long userId,
+
+            @Valid
+            @RequestBody
+            UpdateMemberRoleRequest request,
+
+            Authentication authentication
+    ) {
+
+        return ResponseEntity.ok(
+                projectMemberService.updateRole(
+                        projectId,
+                        userId,
+                        request,
+                        authentication.getName()
+                )
+        );
     }
 }

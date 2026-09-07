@@ -5,6 +5,7 @@ import com.forgeflow.dto.UpdateTaskRequest;
 import com.forgeflow.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -24,19 +25,29 @@ public class TaskManagementController {
     // =========================================================
 
     @GetMapping("/my")
-    public ResponseEntity<List<TaskResponse>> getMyTasks(
+    public ResponseEntity<Page<TaskResponse>> getMyTasks(
+
+            @RequestParam(
+                    defaultValue = "0"
+            )
+            int page,
+
+            @RequestParam(
+                    defaultValue = "10"
+            )
+            int size,
+
             Authentication authentication
     ) {
 
-        String email =
-                authentication.getName();
-
-
-        return ResponseEntity.ok(
+        Page<TaskResponse> tasks =
                 taskService.getMyTasks(
-                        email
-                )
-        );
+                        authentication.getName(),
+                        page,
+                        size
+                );
+
+        return ResponseEntity.ok(tasks);
     }
 
 

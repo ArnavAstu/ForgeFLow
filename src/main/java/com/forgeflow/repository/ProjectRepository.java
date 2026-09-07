@@ -1,6 +1,8 @@
 package com.forgeflow.repository;
 
 import com.forgeflow.entity.Project;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -10,4 +12,8 @@ public interface ProjectRepository
 
     List<Project> findByOwnerId(Long ownerId);
 
+    Page<Project> findByOwnerId(
+            Long ownerId,
+            Pageable pageable
+    );
 }

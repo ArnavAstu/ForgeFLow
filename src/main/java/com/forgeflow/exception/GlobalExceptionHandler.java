@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+
     // =========================================================
     // 404 - RESOURCE NOT FOUND
     // =========================================================
@@ -23,11 +24,12 @@ public class GlobalExceptionHandler {
             ResourceNotFoundException exception
     ) {
 
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.NOT_FOUND.value(),
-                exception.getMessage(),
-                LocalDateTime.now()
-        );
+        ErrorResponse response =
+                new ErrorResponse(
+                        HttpStatus.NOT_FOUND.value(),
+                        exception.getMessage(),
+                        LocalDateTime.now()
+                );
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
@@ -44,11 +46,12 @@ public class GlobalExceptionHandler {
             DuplicateResourceException exception
     ) {
 
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                exception.getMessage(),
-                LocalDateTime.now()
-        );
+        ErrorResponse response =
+                new ErrorResponse(
+                        HttpStatus.CONFLICT.value(),
+                        exception.getMessage(),
+                        LocalDateTime.now()
+                );
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
@@ -65,22 +68,49 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException exception
     ) {
 
-        String message = exception
-                .getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error ->
-                        error.getField()
-                                + ": "
-                                + error.getDefaultMessage()
-                )
-                .collect(Collectors.joining(", "));
+        String message =
+                exception
+                        .getBindingResult()
+                        .getFieldErrors()
+                        .stream()
+                        .map(error ->
+                                error.getField()
+                                        + ": "
+                                        + error.getDefaultMessage()
+                        )
+                        .collect(Collectors.joining(", "));
 
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                message,
-                LocalDateTime.now()
-        );
+
+        ErrorResponse response =
+                new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        message,
+                        LocalDateTime.now()
+                );
+
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+
+    // =========================================================
+    // 400 - BAD REQUEST
+    // =========================================================
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(
+            IllegalArgumentException exception
+    ) {
+
+        ErrorResponse response =
+                new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        exception.getMessage(),
+                        LocalDateTime.now()
+                );
+
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -97,11 +127,13 @@ public class GlobalExceptionHandler {
             AccessDeniedException exception
     ) {
 
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.FORBIDDEN.value(),
-                exception.getMessage(),
-                LocalDateTime.now()
-        );
+        ErrorResponse response =
+                new ErrorResponse(
+                        HttpStatus.FORBIDDEN.value(),
+                        exception.getMessage(),
+                        LocalDateTime.now()
+                );
+
 
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
@@ -118,11 +150,13 @@ public class GlobalExceptionHandler {
             Exception exception
     ) {
 
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "An unexpected error occurred",
-                LocalDateTime.now()
-        );
+        ErrorResponse response =
+                new ErrorResponse(
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        "An unexpected error occurred",
+                        LocalDateTime.now()
+                );
+
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)

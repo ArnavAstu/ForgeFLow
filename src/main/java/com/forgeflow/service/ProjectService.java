@@ -11,6 +11,10 @@ import com.forgeflow.repository.ProjectMemberRepository;
 import com.forgeflow.repository.ProjectRepository;
 import com.forgeflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -351,5 +355,43 @@ public class ProjectService {
                     "Only the project owner can perform this action"
             );
         }
+    }
+
+    public Page<ProjectResponse> getProjects(
+            String email,
+            int page,
+            int size
+    ) {
+
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "User not found"
+                                )
+                        );
+
+        page = Math.max(page, 0);
+        size = Math.min(Math.max(size, 1), 50);
+
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by(
+                                Sort.Direction.DESC,
+                                "createdAt"
+                        )
+                );
+
+        Page<Project> projects =
+                projectRepository
+                        .findByOwnerId(
+                                user.getId(),
+                                pageable
+                        );
+
+        return projects.map(ProjectResponse::new);
     }
 }
