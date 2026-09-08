@@ -1,0 +1,21 @@
+export default function Button({
+                                   children,
+                                   type = "button",
+                                   variant = "primary",
+                                   loading = false,
+                                   disabled = false,
+                                   onClick,
+                                   className = ""
+                               }) {
+
+    return (
+        <button
+            type={type}
+            disabled={disabled || loading}
+            onClick={onClick}
+            className={`btn btn-${variant} ${className}`}
+        >
+            {loading ? "Please wait..." : children}
+        </button>
+    );
+}
